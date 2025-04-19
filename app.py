@@ -114,11 +114,34 @@ def fetch_transcript(video_id):
     except (TranscriptsDisabled, NoTranscriptFound):
         return None
 
+# def summarize_text(text, summarizer):
+#     if len(text) > 1000:
+#         text = text[:1024]
+#     summary = summarizer(text, max_length=150, min_length=30, do_sample=False)
+#     return summary[0]['summary_text']
+
+def split_text(text, max_tokens=1000):
+    sentences = text.split('. ')
+    chunks = []
+    chunk = ''
+    for sentence in sentences:
+        if len(chunk) + len(sentence) <= max_tokens:
+            chunk += sentence + '. '
+        else:
+            chunks.append(chunk.strip())
+            chunk = sentence + '. '
+    if chunk:
+        chunks.append(chunk.strip())
+    return chunks
+
 def summarize_text(text, summarizer):
-    if len(text) > 1000:
-        text = text[:1024]
-    summary = summarizer(text, max_length=150, min_length=30, do_sample=False)
-    return summary[0]['summary_text']
+    chunks = split_text(text)
+    summaries = []
+    for chunk in chunks:
+        summary = summarizer(chunk, max_length=150, min_length=30, do_sample=False)
+        summaries.append(summary[0]['summary_text'])
+    final_summary = ' '.join(summaries)
+    return final_summary
 
 # --- Load Summarization Model Once ---
 @st.cache_resource
@@ -151,4 +174,6 @@ if url:
                 st.error("❌ Transcript not available for this video.")
 else:
     st.info("👆 Paste a YouTube video link above to generate a summary.")
+
+
 
